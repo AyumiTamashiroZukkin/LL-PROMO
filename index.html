@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LL Promo — Gestão de Pagamentos</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#c0392b;--red-dark:#922b21;--red-light:#f9ebea;--red-mid:#e8a59f;
+  --bg:#f4f5f7;--card:#fff;--border:#e2e5eb;--border-light:#edf0f5;
+  --text:#1a2332;--muted:#6b7a8d;
+  --green:#27ae60;--green-bg:#eafaf1;--green-border:#a9dfbf;
+  --blue:#2980b9;--blue-bg:#eaf4fb;--blue-border:#aed6f1;
+  --amber:#d68910;--amber-bg:#fef9e7;--amber-border:#f9e79f;
+  --shadow:0 1px 3px rgba(26,35,50,.07),0 1px 2px rgba(26,35,50,.05);
+  --shadow-md:0 4px 14px rgba(26,35,50,.1);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:260px;background:#1a2332;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:50;overflow-y:auto;transition:transform .3s}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+.sb-logo{width:40px;height:40px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;letter-spacing:-.5px;flex-shrink:0}
+.sb-brand-text span{font-weight:800;font-size:14px;color:#fff;display:block}
+.sb-brand-text small{font-size:10px;color:rgba(255,255,255,.4);font-weight:400}
+.sb-section{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.3);padding:18px 18px 6px;font-weight:600}
+.sb-nav{list-style:none;padding:0 10px;display:flex;flex-direction:column;gap:2px}
+.sb-nav li a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12.5px;font-weight:500;transition:all .2s}
+.sb-nav li a i{width:16px;text-align:center;font-size:12px}
+.sb-nav li a:hover,.sb-nav li a.active{background:rgba(192,57,43,.25);color:#fff}
+.sb-nav li a.active{background:var(--red);color:#fff}
+.main{margin-left:260px;padding:28px 32px;flex:1}
+
+/* HEADER */
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-header h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.page-header p{color:var(--muted);font-size:12.5px;margin-top:3px}
+
+/* CHIPS DE MÊS */
+.month-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.month-chip{padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;box-shadow:var(--shadow)}
+.month-chip.active{background:var(--red);color:#fff;border-color:var(--red)}
+.month-chip:not(.active):hover{background:#f0f2f5}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.stat-top span{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.stat-val{font-size:22px;font-weight:800}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 18px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .18s}
+.tab.active{color:var(--red);border-bottom-color:var(--red)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* BOTÕES */
+.btn{padding:8px 16px;border-radius:8px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:6px}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:var(--red-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(192,57,43,.3)}
+.btn-outline{background:var(--card);border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:#f0f2f5}
+.btn-danger{background:#fdf0f0;color:var(--red);border:1px solid var(--red-mid)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-green{background:var(--green-bg);color:#1e8449;border:1px solid var(--green-border)}
+.btn-green:hover{background:var(--green);color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+/* TABELA */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.table-toolbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.search-box{display:flex;align-items:center;gap:8px;background:#f4f5f7;border:1px solid var(--border);border-radius:8px;padding:6px 12px;min-width:200px}
+.search-box i{color:var(--muted);font-size:12px}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-family:inherit;font-size:12px;width:100%}
+.search-box input::placeholder{color:var(--muted)}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 13px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;text-align:left;border-bottom:1px solid var(--border);background:#f9fafc;white-space:nowrap}
+tbody td{padding:11px 13px;font-size:12px;border-bottom:1px solid var(--border-light);white-space:nowrap}
+tbody tr:hover{background:#fafbfc}
+tbody tr:last-child td{border-bottom:none}
+.total-row td{font-weight:700!important;background:#f9fafc!important;font-size:13px}
+.tfoot{display:flex;justify-content:space-between;padding:9px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)}
+
+/* BADGE */
+.badge{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;gap:4px;align-items:center}
+.badge-red{background:var(--red-light);color:var(--red);border:1px solid var(--red-mid)}
+.badge-green{background:var(--green-bg);color:#1e8449;border:1px solid var(--green-border)}
+.badge-blue{background:var(--blue-bg);color:#1a6898;border:1px solid var(--blue-border)}
+.badge-amber{background:var(--amber-bg);color:#9a6c00;border:1px solid var(--amber-border)}
+
+/* MODAL */
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,35,50,.45);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:all .2s}
+.overlay.show{opacity:1;visibility:visible}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;transform:translateY(16px);transition:transform .2s;box-shadow:0 20px 60px rgba(26,35,50,.18)}
+.overlay.show .modal{transform:translateY(0)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-head h2{font-size:15px;font-weight:700}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#f0f2f5;color:var(--text)}
+.modal-body{padding:20px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border)}
+
+/* FORM */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+.fg label{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.fg input,.fg select,.fg textarea{padding:8px 11px;background:#f4f5f7;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:border-color .18s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,.1)}
+.fg input[readonly]{background:#edf0f5;color:var(--muted);cursor:default}
+
+/* CALC PREVIEW */
+.calc-preview{background:var(--red-light);border:1px solid var(--red-mid);border-radius:10px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;gap:12px}
+.calc-formula{font-size:11px;color:var(--muted);flex:1}
+.calc-result{font-size:20px;font-weight:800;color:var(--red)}
+
+/* INFO BAR */
+.info-bar{display:flex;align-items:center;gap:14px;background:var(--red-light);border:1px solid var(--red-mid);border-radius:10px;padding:11px 16px;margin-bottom:18px;flex-wrap:wrap}
+.ib-icon{font-size:16px;color:var(--red)}
+.ib-label{font-size:10.5px;color:var(--muted);font-weight:500}
+.ib-val{font-size:13px;font-weight:700}
+.ib-div{width:1px;height:28px;background:var(--red-mid)}
+
+/* PESQUISADOR CARD */
+.pesq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.pesq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.pesq-left{display:flex;align-items:center;gap:12px}
+.pesq-avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.pesq-name{font-size:13px;font-weight:700}
+.pesq-id{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* CONSOLIDADO */
+.cons-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px}
+.cons-header{background:#f9fafc;border-bottom:1px solid var(--border);padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.cons-name{font-size:13px;font-weight:700}
+.cons-total{font-size:17px;font-weight:800;color:var(--green)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-size:12px;z-index:200;display:flex;align-items:center;gap:8px;transform:translateY(80px);opacity:0;transition:all .28s;box-shadow:var(--shadow-md)}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px}
+.empty i{font-size:38px;color:var(--border);margin-bottom:12px}
+.empty h3{font-size:14px;margin-bottom:5px}
+.empty p{font-size:12px;color:var(--muted);margin-bottom:16px}
+
+/* MOBILE */
+.mob-toggle{display:none;position:fixed;top:14px;left:14px;z-index:60;background:var(--card);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;align-items:center;justify-content:center;color:var(--text);font-size:15px;cursor:pointer;box-shadow:var(--shadow)}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mob-toggle{display:flex}.main{margin-left:0;padding:16px;padding-top:56px}.fgrid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.stats{grid-template-columns:1fr}}
+
+/* FIREBASE STATUS */
+.fb-status{padding:9px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:18px}
+.fb-ok{background:var(--green-bg);border:1px solid var(--green-border);color:#1e8449}
+.fb-warn{background:var(--amber-bg);border:1px solid var(--amber-border);color:#9a6c00}
+.fb-err{background:var(--red-light);border:1px solid var(--red-mid);color:var(--red)}
+
+input[type=checkbox]{accent-color:var(--red);cursor:pointer}
+</style>
+</head>
+<body>
+
+<button class="mob-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
+
+<div class="layout">
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">LL</div>
+    <div class="sb-brand-text"><span>LL Promo</span><small>Gestão de Pagamentos</small></div>
+  </div>
+  <div class="sb-section">Menu</div>
+  <ul class="sb-nav">
+    <li><a href="#" class="active" id="navDash" onclick="showPage('dash');return false"><i class="fas fa-table-columns"></i> Dashboard</a></li>
+    <li><a href="#" onclick="openLancModal();return false"><i class="fas fa-plus-circle"></i> Novo Lançamento</a></li>
+  </ul>
+  <div class="sb-section">Configurações</div>
+  <ul class="sb-nav">
+    <li><a href="#" id="navPesq" onclick="showPage('pesquisadores');return false"><i class="fas fa-users"></i> Pesquisadores</a></li>
+  </ul>
+  <div class="sb-section">Exportar</div>
+  <ul class="sb-nav">
+    <li><a href="#" onclick="exportXLS();return false"><i class="fas fa-file-excel"></i> Exportar XLS</a></li>
+  </ul>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div id="pageDash">
+    <div class="page-header">
+      <div><h1>💰 Pagamentos LL Promo</h1><p>Selecione o mês para visualizar e lançar</p></div>
+      <button class="btn btn-red" onclick="openLancModal()"><i class="fas fa-plus"></i> Novo Lançamento</button>
+    </div>
+    <div id="fbStatus" class="fb-status fb-warn">⏳ Conectando ao Firebase...</div>
+    <div class="month-row" id="monthRow"></div>
+    <div id="infoBar"></div>
+    <div class="stats" id="statsGrid"></div>
+    <div class="tabs">
+      <button class="tab active" id="tabLanc" onclick="setView('lanc')"><i class="fas fa-list"></i>&nbsp; Lançamentos</button>
+      <button class="tab" id="tabCons" onclick="setView('cons')"><i class="fas fa-users"></i>&nbsp; Consolidado</button>
+    </div>
+    <div id="content"></div>
+  </div>
+
+  <!-- PESQUISADORES -->
+  <div id="pagePesq" style="display:none">
+    <div class="page-header">
+      <div><h1>👥 Pesquisadores</h1><p>Cadastre os pesquisadores LL Promo</p></div>
+      <button class="btn btn-red" onclick="openPesqModal()"><i class="fas fa-plus"></i> Novo Pesquisador</button>
+    </div>
+    <div id="pesqArea"></div>
+  </div>
+
+</main>
+</div>
+
+<!-- MODAL LANÇAMENTO -->
+<div class="overlay" id="lancModal">
+<div class="modal">
+  <div class="modal-head"><h2 id="lancTitle">Novo Lançamento</h2><button class="modal-close" onclick="closeModal('lancModal')">&times;</button></div>
+  <div class="modal-body">
+    <div class="fgrid">
+      <div class="fg full"><label>Mês de Referência</label><select id="fMes"></select></div>
+      <div class="fg full"><label>Pesquisador</label><select id="fPesq"><option value="">Selecione...</option></select></div>
+      <div class="fg full"><label>Loja / Estabelecimento</label><input type="text" id="fLoja" placeholder="Ex: Carrefour - Centro (São Paulo/SP)" list="dlLoja"><datalist id="dlLoja"></datalist></div>
+      <div class="fg"><label>Cliente</label><input type="text" id="fCliente" placeholder="Ex: GPA, Lopes, Vivo..." list="dlCliente"><datalist id="dlCliente"></datalist></div>
+      <div class="fg"><label>Data da Visita</label><input type="date" id="fData"></div>
+      <div class="fg"><label>Semana</label><input type="text" id="fSemana" placeholder="Ex: Semana 23" list="dlSemana"><datalist id="dlSemana"></datalist></div>
+      <div class="fg"><label>Método</label><select id="fMetodo"><option value="Gondola">Gôndola</option><option value="Kindle">Kindle</option></select></div>
+    </div>
+
+    <!-- CAMPOS DE CÁLCULO -->
+    <div style="margin-top:14px;padding:14px;background:#f9fafc;border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px"><i class="fas fa-calculator" style="color:var(--red);margin-right:6px"></i>Quantidade de Itens</div>
+      <div class="fgrid">
+        <div class="fg"><label>Gôndola</label><input type="number" id="fGondola" min="0" value="0" oninput="calcValor()"></div>
+        <div class="fg"><label>Busca Preço</label><input type="number" id="fBusca" min="0" value="0" oninput="calcValor()"></div>
+        <div class="fg"><label>Auditoria Final</label><input type="number" id="fAuditoria" min="0" value="0" oninput="calcValor()"></div>
+        <div class="fg"><label>Total Itens</label><input type="number" id="fTotalItens" readonly style="background:#edf0f5;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <div class="calc-preview" id="calcPreview">
+      <div class="calc-formula" id="calcFormula">Preencha os itens acima</div>
+      <div class="calc-result" id="calcResult">R$ 0,00</div>
+    </div>
+
+    <div class="fgrid" style="margin-top:12px">
+      <div class="fg full"><label>Observação</label><input type="text" id="fObs" placeholder="Opcional"></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('lancModal')">Cancelar</button>
+    <button class="btn btn-red" onclick="saveLanc()"><i class="fas fa-check"></i> Salvar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL PESQUISADOR -->
+<div class="overlay" id="pesqModal">
+<div class="modal" style="max-width:440px">
+  <div class="modal-head"><h2 id="pesqModalTitle">Novo Pesquisador</h2><button class="modal-close" onclick="closeModal('pesqModal')">&times;</button></div>
+  <div class="modal-body">
+    <div class="fgrid">
+      <div class="fg"><label>ID (número)</label><input type="text" id="pId" placeholder="Ex: 8090"></div>
+      <div class="fg"><label>Nome completo</label><input type="text" id="pNome" placeholder="Ex: Alexandre Lazarro" oninput="updatePesqPreview()"></div>
+    </div>
+    <div style="margin-top:14px;background:#f4f5f7;border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px" id="pesqPreview">
+      <div id="ppAvatar" style="width:42px;height:42px;border-radius:10px;background:var(--red);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff">??</div>
+      <div><div id="ppNome" style="font-size:13px;font-weight:700">Pré-visualização</div><div id="ppId" style="font-size:11px;color:var(--muted);margin-top:2px">ID: —</div></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('pesqModal')">Cancelar</button>
+    <button class="btn btn-red" onclick="savePesq()"><i class="fas fa-check"></i> Salvar</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle" style="color:var(--green)"></i><span id="toastMsg"></span></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,initializeFirestore,memoryLocalCache}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const cfg={
+  apiKey:"AIzaSyC1vNZBgAfMmueuHxYZURdV7FEwXwA-CjQ",
+  authDomain:"ll-promo.firebaseapp.com",
+  projectId:"ll-promo",
+  storageBucket:"ll-promo.firebasestorage.app",
+  messagingSenderId:"329084959525",
+  appId:"1:329084959525:web:c8c8964b3bf8ec0e0df8cc"
+};
+
+let fbOk=false,tid=null;
+const setStatus=(t,m)=>{const el=document.getElementById('fbStatus');if(!el)return;el.className='fb-status fb-'+t;el.innerHTML=m};
+
+try{
+  const app=initializeApp(cfg,'llpromo');
+  let db;
+  try{db=initializeFirestore(app,{localCache:memoryLocalCache(),experimentalForceLongPolling:true})}
+  catch(e){db=getFirestore(app)}
+
+  const listen=(col,cb)=>onSnapshot(collection(db,col),(snap)=>{
+    if(!snap.metadata.fromCache&&!fbOk){fbOk=true;if(tid)clearTimeout(tid);setStatus('ok','🟢 Firebase conectado — dados em tempo real')}
+    if(snap.metadata.fromCache&&!fbOk)setStatus('warn','⏳ Aguardando servidor...');
+    cb(snap);
+  },(e)=>setStatus('err','🔴 Erro: '+e.message));
+
+  listen('llp_lancamentos',(snap)=>{const r=[];snap.forEach(d=>{const x=d.data();x.id=d.id;r.push(x)});window._fbLanc=r;if(window.onFbReady)window.onFbReady()});
+  listen('llp_pesquisadores',(snap)=>{const r=[];snap.forEach(d=>{const x=d.data();x.id=d.id;r.push(x)});window._fbPesq=r;if(window.onFbReady)window.onFbReady()});
+
+  window.fbSaveLanc=async(r)=>{try{await setDoc(doc(db,'llp_lancamentos',r.id),r)}catch(e){alert('Erro: '+e.message)}};
+  window.fbDelLanc=async(id)=>{try{await deleteDoc(doc(db,'llp_lancamentos',id))}catch(e){alert('Erro: '+e.message)}};
+  window.fbSavePesq=async(p)=>{try{await setDoc(doc(db,'llp_pesquisadores',p.id),p)}catch(e){alert('Erro: '+e.message)}};
+  window.fbDelPesq=async(id)=>{try{await deleteDoc(doc(db,'llp_pesquisadores',id))}catch(e){alert('Erro: '+e.message)}};
+  window.fbReady=true;
+}catch(e){setStatus('err','🔴 Erro Fatal: '+e.message);window.fbReady=false}
+tid=setTimeout(()=>{if(!fbOk)setStatus('err','🔴 Firebase não respondeu')},20000);
+</script>
+
+<script>
+const MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const COLORS=['#c0392b','#2980b9','#27ae60','#8e44ad','#d68910','#16a085','#e67e22','#2c3e50','#c0392b','#1abc9c'];
+
+let S={lanc:[],pesq:[],selMes:null,view:'lanc',q:'',editLancId:null,editPesqId:null,page:'dash'};
+window._fbLanc=[];window._fbPesq=[];
+
+window.onFbReady=()=>{
+  S.lanc=window._fbLanc;
+  S.pesq=window._fbPesq;
+  render();
+};
+
+// Helpers
+const fC=v=>'R$ '+Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+const fDF=d=>{if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`};
+const fD=d=>{if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}`};
+const gM=d=>d?parseInt(d.split('-')[1])-1:0;
+const gY=d=>d?parseInt(d.split('-')[0]):0;
+const gMesKey=d=>d?d.substring(0,7):'';
+const ini2=n=>n.split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const pesqColor=id=>{const idx=parseInt(id||'0')%COLORS.length;return COLORS[idx]};
+const toast=m=>{const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)};
+const openModal=id=>document.getElementById(id).classList.add('show');
+const closeModal=id=>document.getElementById(id).classList.remove('show');
+
+// Cálculo automático
+function calcValor(){
+  const g=parseFloat(document.getElementById('fGondola').value)||0;
+  const b=parseFloat(document.getElementById('fBusca').value)||0;
+  const a=parseFloat(document.getElementById('fAuditoria').value)||0;
+  const total=g+b+a;
+  document.getElementById('fTotalItens').value=total;
+  const valor=(g*0.15)+(b*0.08)+(a*0.15)+28;
+  document.getElementById('calcFormula').innerHTML=
+    `(${g} × R$0,15) + (${b} × R$0,08) + (${a} × R$0,15) + R$28,00`;
+  document.getElementById('calcResult').textContent=fC(valor);
+  return valor;
+}
+
+// Meses disponíveis (a partir dos lançamentos + mês atual)
+function getMeses(){
+  const set=new Set();
+  const now=new Date();
+  // adiciona mês atual e próximo
+  set.add(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+  const next=new Date(now.getFullYear(),now.getMonth()+1,1);
+  set.add(`${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`);
+  S.lanc.forEach(l=>{if(l.mes)set.add(l.mes)});
+  return [...set].sort();
+}
+
+function getLancMes(){return S.lanc.filter(l=>l.mes===S.selMes)}
+
+// Popular selects
+function popPesqSel(){
+  const sel=document.getElementById('fPesq'),cur=sel.value;
+  sel.innerHTML='<option value="">Selecione...</option>';
+  [...S.pesq].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.id;
+    o.textContent=`${p.pesqId} - ${p.nome}`;
+    sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+}
+function popMesSel(){
+  const sel=document.getElementById('fMes'),cur=sel.value;
+  sel.innerHTML='';
+  getMeses().forEach(m=>{
+    const[y,mo]=m.split('-');
+    const o=document.createElement('option');
+    o.value=m;
+    o.textContent=MN[parseInt(mo)-1]+' '+y;
+    sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+  else if(S.selMes)sel.value=S.selMes;
+}
+function popDataLists(){
+  const u=(id,arr)=>{document.getElementById(id).innerHTML=[...new Set(arr)].filter(Boolean).map(v=>`<option value="${v}">`).join('')};
+  u('dlLoja',S.lanc.map(l=>l.loja));
+  u('dlCliente',S.lanc.map(l=>l.cliente));
+  u('dlSemana',S.lanc.map(l=>l.semana));
+}
+
+// MODAL LANÇAMENTO
+function openLancModal(editId){
+  S.editLancId=editId||null;
+  document.getElementById('lancTitle').textContent=editId?'Editar Lançamento':'Novo Lançamento';
+  popPesqSel();popMesSel();popDataLists();
+  if(editId){
+    const l=S.lanc.find(x=>x.id===editId);
+    if(l){
+      document.getElementById('fMes').value=l.mes;
+      document.getElementById('fPesq').value=l.pesqDbId;
+      document.getElementById('fLoja').value=l.loja;
+      document.getElementById('fCliente').value=l.cliente||'';
+      document.getElementById('fData').value=l.data||'';
+      document.getElementById('fSemana').value=l.semana||'';
+      document.getElementById('fMetodo').value=l.metodo||'Gondola';
+      document.getElementById('fGondola').value=l.gondola||0;
+      document.getElementById('fBusca').value=l.busca||0;
+      document.getElementById('fAuditoria').value=l.auditoria||0;
+      document.getElementById('fObs').value=l.obs||'';
+      calcValor();
+    }
+  } else {
+    document.getElementById('fPesq').value='';
+    document.getElementById('fLoja').value='';
+    document.getElementById('fCliente').value='';
+    document.getElementById('fData').value='';
+    document.getElementById('fSemana').value='';
+    document.getElementById('fMetodo').value='Gondola';
+    document.getElementById('fGondola').value=0;
+    document.getElementById('fBusca').value=0;
+    document.getElementById('fAuditoria').value=0;
+    document.getElementById('fObs').value='';
+    document.getElementById('fTotalItens').value=0;
+    document.getElementById('calcFormula').textContent='Preencha os itens acima';
+    document.getElementById('calcResult').textContent='R$ 0,00';
+  }
+  openModal('lancModal');
+}
+window.openLancModal=openLancModal;
+
+function saveLanc(){
+  const pesqDbId=document.getElementById('fPesq').value;
+  const loja=document.getElementById('fLoja').value.trim();
+  const mes=document.getElementById('fMes').value;
+  if(!pesqDbId){toast('⚠️ Selecione o pesquisador');return}
+  if(!loja){toast('⚠️ Informe a loja');return}
+  if(!mes){toast('⚠️ Selecione o mês');return}
+
+  const pesqObj=S.pesq.find(p=>p.id===pesqDbId);
+  const g=parseFloat(document.getElementById('fGondola').value)||0;
+  const b=parseFloat(document.getElementById('fBusca').value)||0;
+  const a=parseFloat(document.getElementById('fAuditoria').value)||0;
+  const valor=(g*0.15)+(b*0.08)+(a*0.15)+28;
+
+  const rec={
+    id:S.editLancId||Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+    mes,
+    pesqDbId,
+    pesqId:pesqObj?pesqObj.pesqId:'',
+    pesqNome:pesqObj?pesqObj.nome:'',
+    loja,
+    cliente:document.getElementById('fCliente').value.trim(),
+    data:document.getElementById('fData').value,
+    semana:document.getElementById('fSemana').value.trim(),
+    metodo:document.getElementById('fMetodo').value,
+    gondola:g,busca:b,auditoria:a,
+    totalItens:g+b+a,
+    valor:parseFloat(valor.toFixed(2)),
+    obs:document.getElementById('fObs').value.trim()
+  };
+  if(window.fbReady){window.fbSaveLanc(rec);toast(S.editLancId?'✅ Atualizado!':'✅ Salvo!')}
+  else toast('⚠️ Firebase não conectado');
+  closeModal('lancModal');
+}
+
+function delLanc(id){
+  if(!confirm('Excluir este lançamento?'))return;
+  if(window.fbReady){window.fbDelLanc(id);toast('🗑️ Excluído')}
+}
+
+// MODAL PESQUISADOR
+function openPesqModal(editId){
+  S.editPesqId=editId||null;
+  document.getElementById('pesqModalTitle').textContent=editId?'Editar Pesquisador':'Novo Pesquisador';
+  if(editId){
+    const p=S.pesq.find(x=>x.id===editId);
+    if(p){document.getElementById('pId').value=p.pesqId;document.getElementById('pNome').value=p.nome}
+  } else {
+    document.getElementById('pId').value='';
+    document.getElementById('pNome').value='';
+  }
+  updatePesqPreview();
+  openModal('pesqModal');
+}
+window.openPesqModal=openPesqModal;
+
+function updatePesqPreview(){
+  const nm=document.getElementById('pNome').value.trim();
+  const id=document.getElementById('pId').value.trim();
+  document.getElementById('ppAvatar').textContent=nm?ini2(nm):'??';
+  document.getElementById('ppAvatar').style.background=pesqColor(id);
+  document.getElementById('ppNome').textContent=nm||'Pré-visualização';
+  document.getElementById('ppId').textContent='ID: '+(id||'—');
+}
+window.updatePesqPreview=updatePesqPreview;
+
+function savePesq(){
+  const pesqId=document.getElementById('pId').value.trim();
+  const nome=document.getElementById('pNome').value.trim();
+  if(!nome){toast('⚠️ Preencha o nome');return}
+  const p={id:S.editPesqId||'p-'+Date.now().toString(36),pesqId,nome};
+  if(window.fbReady){window.fbSavePesq(p);toast(S.editPesqId?'✅ Atualizado!':'✅ Pesquisador cadastrado!')}
+  else toast('⚠️ Firebase não conectado');
+  closeModal('pesqModal');
+}
+
+function delPesq(id){
+  const p=S.pesq.find(x=>x.id===id);if(!p)return;
+  const n=S.lanc.filter(l=>l.pesqDbId===id).length;
+  if(!confirm(n?`"${p.nome}" tem ${n} lançamento(s).\nExcluir mesmo assim?`:`Excluir "${p.nome}"?`))return;
+  if(window.fbReady){window.fbDelPesq(id);toast('🗑️ Pesquisador removido')}
+}
+
+// PÁGINAS
+function showPage(p){
+  S.page=p;
+  document.getElementById('pageDash').style.display=p==='dash'?'':'none';
+  document.getElementById('pagePesq').style.display=p==='pesquisadores'?'':'none';
+  document.querySelectorAll('.sb-nav a').forEach(a=>a.classList.remove('active'));
+  const map={dash:'navDash',pesquisadores:'navPesq'};
+  if(map[p])document.getElementById(map[p]).classList.add('active');
+  if(p==='pesquisadores')renderPesq();
+}
+window.showPage=showPage;
+
+function setView(v){
+  S.view=v;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab'+(v==='lanc'?'Lanc':'Cons')).classList.add('active');
+  renderContent();
+}
+window.setView=setView;
+
+// RENDER PRINCIPAL
+function render(){
+  renderMonths();
+  renderInfoBar();
+  renderStats();
+  renderContent();
+  if(S.page==='pesquisadores')renderPesq();
+}
+
+function renderMonths(){
+  const meses=getMeses();
+  if(!S.selMes&&meses.length)S.selMes=meses[meses.length-1];
+  document.getElementById('monthRow').innerHTML=meses.map(m=>{
+    const[y,mo]=m.split('-');
+    return`<button class="month-chip${S.selMes===m?' active':''}" onclick="selMes('${m}')">${MN[parseInt(mo)-1]} ${y}</button>`;
+  }).join('');
+}
+
+function selMes(m){S.selMes=m;S.q='';render()}
+window.selMes=selMes;
+
+function renderInfoBar(){
+  const recs=getLancMes();
+  const el=document.getElementById('infoBar');
+  if(!S.selMes||!recs.length){el.innerHTML='';return}
+  const total=recs.reduce((s,r)=>s+r.valor,0);
+  const totalItens=recs.reduce((s,r)=>s+(r.totalItens||0),0);
+  const[y,m]=S.selMes.split('-');
+  el.innerHTML=`<div class="info-bar">
+    <span class="ib-icon"><i class="fas fa-calendar-check"></i></span>
+    <div><div class="ib-label">Período</div><div class="ib-val">${MN[parseInt(m)-1]} ${y}</div></div>
+    <div class="ib-div"></div>
+    <div><div class="ib-label">Total a Pagar</div><div class="ib-val" style="color:var(--green)">${fC(total)}</div></div>
+    <div class="ib-div"></div>
+    <div><div class="ib-label">Lançamentos</div><div class="ib-val">${recs.length}</div></div>
+    <div class="ib-div"></div>
+    <div><div class="ib-label">Total Itens</div><div class="ib-val">${totalItens.toLocaleString('pt-BR')}</div></div>
+  </div>`;
+}
+
+function renderStats(){
+  if(!S.selMes)return;
+  const recs=getLancMes();
+  const total=recs.reduce((s,r)=>s+r.valor,0);
+  const pesqs=new Set(recs.map(r=>r.pesqNome)).size;
+  const clientes=new Set(recs.map(r=>r.cliente)).size;
+  const totalItens=recs.reduce((s,r)=>s+(r.totalItens||0),0);
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat"><div class="stat-top"><span>Total Mensal</span><div class="stat-icon" style="background:var(--red-light);color:var(--red)"><i class="fas fa-wallet"></i></div></div><div class="stat-val">${fC(total)}</div><div class="stat-sub">${recs.length} lançamentos</div></div>
+    <div class="stat"><div class="stat-top"><span>Pesquisadores</span><div class="stat-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="fas fa-users"></i></div></div><div class="stat-val">${pesqs}</div><div class="stat-sub">ativos no mês</div></div>
+    <div class="stat"><div class="stat-top"><span>Clientes</span><div class="stat-icon" style="background:var(--amber-bg);color:var(--amber)"><i class="fas fa-briefcase"></i></div></div><div class="stat-val">${clientes}</div><div class="stat-sub">atendidos</div></div>
+    <div class="stat"><div class="stat-top"><span>Total Itens</span><div class="stat-icon" style="background:var(--green-bg);color:var(--green)"><i class="fas fa-box-open"></i></div></div><div class="stat-val">${totalItens.toLocaleString('pt-BR')}</div><div class="stat-sub">datapoints</div></div>
+  `;
+}
+
+function renderContent(){
+  if(S.view==='lanc')renderLanc();
+  else renderCons();
+}
+
+function renderLanc(){
+  const recs=getLancMes();
+  const q=S.q.toLowerCase();
+  const f=q?recs.filter(r=>r.pesqNome.toLowerCase().includes(q)||r.loja.toLowerCase().includes(q)||(r.cliente||'').toLowerCase().includes(q)||(r.pesqId||'').includes(q)):recs;
+  const sorted=[...f].sort((a,b)=>a.pesqNome.localeCompare(b.pesqNome,'pt-BR')||(a.data||'').localeCompare(b.data||''));
+  const total=sorted.reduce((s,r)=>s+r.valor,0);
+  const el=document.getElementById('content');
+
+  if(!sorted.length&&!recs.length){
+    el.innerHTML=`<div class="empty"><i class="fas fa-inbox"></i><h3>Nenhum lançamento em ${S.selMes?MN[parseInt(S.selMes.split('-')[1])-1]+' '+S.selMes.split('-')[0]:''}</h3><p>Clique em "Novo Lançamento" para começar.</p><button class="btn btn-red" onclick="openLancModal()"><i class="fas fa-plus"></i> Novo Lançamento</button></div>`;
+    return;
+  }
+
+  el.innerHTML=`<div class="table-wrap">
+    <div class="table-toolbar">
+      <div class="search-box"><i class="fas fa-search"></i><input placeholder="Buscar pesquisador, loja, cliente..." value="${S.q}" oninput="S.q=this.value;renderContent()"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">${sorted.length} reg.</span>
+        <button class="btn btn-green btn-sm" onclick="exportXLS()"><i class="fas fa-file-excel"></i> XLS</button>
+        <button class="btn btn-red btn-sm" onclick="openLancModal()"><i class="fas fa-plus"></i> Novo</button>
+      </div>
+    </div>
+    <div class="tscroll"><table>
+      <thead><tr>
+        <th>Pesquisador</th><th>Loja</th><th>Cliente</th><th>Data</th><th>Semana</th><th>Método</th><th style="text-align:right">Gônd.</th><th style="text-align:right">Busca</th><th style="text-align:right">Audit.</th><th style="text-align:right">Total It.</th><th style="text-align:right">Valor</th><th>Ações</th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map(r=>{
+          const col=pesqColor(r.pesqId);
+          return`<tr>
+            <td><div style="display:flex;align-items:center;gap:8px">
+              <div style="width:28px;height:28px;border-radius:7px;background:${col};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">${ini2(r.pesqNome)}</div>
+              <div><div style="font-weight:600;font-size:12px">${r.pesqNome}</div><div style="font-size:10px;color:var(--muted)">${r.pesqId?'#'+r.pesqId:''}</div></div>
+            </div></td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.loja}</td>
+            <td>${r.cliente?`<span class="badge badge-blue">${r.cliente}</span>`:'-'}</td>
+            <td>${r.data?fD(r.data):'-'}</td>
+            <td style="color:var(--muted);font-size:11px">${r.semana||'-'}</td>
+            <td><span class="badge ${r.metodo==='Kindle'?'badge-amber':'badge-green'}">${r.metodo||'-'}</span></td>
+            <td style="text-align:right">${r.gondola||0}</td>
+            <td style="text-align:right">${r.busca||0}</td>
+            <td style="text-align:right">${r.auditoria||0}</td>
+            <td style="text-align:right;font-weight:600">${r.totalItens||0}</td>
+            <td style="text-align:right;font-weight:700;color:var(--green)">${fC(r.valor)}</td>
+            <td><div style="display:flex;gap:4px">
+              <button class="btn btn-outline btn-sm" onclick="openLancModal('${r.id}')"><i class="fas fa-pen"></i></button>
+              <button class="btn btn-danger btn-sm" onclick="delLanc('${r.id}')"><i class="fas fa-trash"></i></button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+        <tr class="total-row">
+          <td colspan="9" style="text-align:right;font-size:11px;color:var(--muted)">TOTAL:</td>
+          <td style="text-align:right;font-weight:700">${sorted.reduce((s,r)=>s+(r.totalItens||0),0).toLocaleString('pt-BR')}</td>
+          <td style="text-align:right;font-weight:700;color:var(--green);font-size:13px">${fC(total)}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="tfoot"><span>${sorted.length} lançamentos</span><span style="color:var(--green);font-weight:700">${fC(total)}</span></div>
+  </div>`;
+}
+
+function renderCons(){
+  const recs=getLancMes();
+  if(!recs.length){document.getElementById('content').innerHTML='<div class="empty"><i class="fas fa-chart-pie"></i><h3>Sem dados para consolidar</h3><p>Adicione lançamentos para ver o consolidado.</p></div>';return}
+
+  const byPesq={};
+  recs.forEach(r=>{
+    if(!byPesq[r.pesqDbId])byPesq[r.pesqDbId]={pesqId:r.pesqId,pesqNome:r.pesqNome,linhas:[],total:0,totalItens:0};
+    byPesq[r.pesqDbId].linhas.push(r);
+    byPesq[r.pesqDbId].total+=r.valor;
+    byPesq[r.pesqDbId].totalItens+=(r.totalItens||0);
+  });
+
+  const list=Object.values(byPesq).sort((a,b)=>a.pesqNome.localeCompare(b.pesqNome,'pt-BR'));
+  const grandTotal=list.reduce((s,p)=>s+p.total,0);
+
+  document.getElementById('content').innerHTML=`
+    <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h3 style="font-size:14px;font-weight:700"><i class="fas fa-users" style="color:var(--red);margin-right:8px"></i>Consolidado por Pesquisador</h3>
+      <div style="font-size:14px;font-weight:800;color:var(--green)">Total: ${fC(grandTotal)}</div>
+    </div>
+    ${list.map(p=>{
+      const col=pesqColor(p.pesqId);
+      const sorted=[...p.linhas].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+      return`<div class="cons-card">
+        <div class="cons-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:9px;background:${col};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">${ini2(p.pesqNome)}</div>
+            <div>
+              <div class="cons-name">${p.pesqNome}${p.pesqId?` <span style="font-size:10px;color:var(--muted);font-weight:400">#${p.pesqId}</span>`:''}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:1px">${p.linhas.length} lançamento(s) · ${p.totalItens.toLocaleString('pt-BR')} itens</div>
+            </div>
+          </div>
+          <div class="cons-total">${fC(p.total)}</div>
+        </div>
+        <div style="padding:8px 0">
+          <table style="width:100%">
+            <thead><tr>
+              <th style="padding:7px 16px">Loja</th><th style="padding:7px">Cliente</th><th style="padding:7px">Data</th><th style="padding:7px;text-align:right">Itens</th><th style="padding:7px;text-align:right">Valor</th>
+            </tr></thead>
+            <tbody>
+              ${sorted.map(r=>`<tr>
+                <td style="padding:8px 16px;font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis">${r.loja}</td>
+                <td style="padding:8px;font-size:11px;color:var(--muted)">${r.cliente||'-'}</td>
+                <td style="padding:8px;font-size:11px;color:var(--muted)">${r.data?fD(r.data):'-'}</td>
+                <td style="padding:8px;text-align:right;font-size:12px">${r.totalItens||0}</td>
+                <td style="padding:8px;text-align:right;font-weight:600;color:var(--green);font-size:12px">${fC(r.valor)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function renderPesq(){
+  const sorted=[...S.pesq].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  if(!sorted.length){
+    document.getElementById('pesqArea').innerHTML=`<div class="empty"><i class="fas fa-user-slash"></i><h3>Nenhum pesquisador cadastrado</h3><p>Clique em "+ Novo Pesquisador" para adicionar.</p></div>`;
+    return;
+  }
+  document.getElementById('pesqArea').innerHTML=`<div class="pesq-grid">${sorted.map(p=>{
+    const col=pesqColor(p.pesqId);
+    const n=S.lanc.filter(l=>l.pesqDbId===p.id).length;
+    return`<div class="pesq-card">
+      <div class="pesq-left">
+        <div class="pesq-avatar" style="background:${col}">${ini2(p.nome)}</div>
+        <div>
+          <div class="pesq-name">${p.nome}</div>
+          <div class="pesq-id">${p.pesqId?'ID: '+p.pesqId+' · ':''} ${n} lançamento(s)</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm" onclick="openPesqModal('${p.id}')"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="delPesq('${p.id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// EXPORT XLS
+function exportXLS(){
+  const recs=getLancMes();
+  if(!recs.length){toast('⚠️ Nenhum lançamento para exportar');return}
+  const sorted=[...recs].sort((a,b)=>a.pesqNome.localeCompare(b.pesqNome,'pt-BR')||(a.data||'').localeCompare(b.data||''));
+  const h=['Pesquisador','ID','Loja','Cliente','Data','Semana','Método','Gôndola','Busca Preço','Auditoria Final','Total Itens','Valor (R$)','Obs'];
+  const rows=sorted.map(r=>[
+    r.pesqNome,r.pesqId||'',r.loja,r.cliente||'',r.data?fDF(r.data):'',
+    r.semana||'',r.metodo||'',r.gondola||0,r.busca||0,r.auditoria||0,
+    r.totalItens||0,r.valor,r.obs||''
+  ]);
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([h,...rows]);
+  ws['!cols']=[{wch:30},{wch:8},{wch:40},{wch:14},{wch:12},{wch:12},{wch:10},{wch:10},{wch:12},{wch:14},{wch:12},{wch:14},{wch:30}];
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let r=1;r<=range.e.r;r++){const a=XLSX.utils.encode_cell({r,c:11});if(ws[a]){ws[a].t='n';ws[a].z='R$ #,##0.00'}}
+  XLSX.utils.book_append_sheet(wb,ws,'LL Promo');
+  const[y,m]=S.selMes.split('-');
+  XLSX.writeFile(wb,`LLPromo_${MN[parseInt(m)-1]}_${y}.xlsx`);
+  toast(`📥 XLS exportado! (${sorted.length} reg.)`);
+}
+window.exportXLS=exportXLS;
+
+// Close modal on backdrop click
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show')}));
+
+// Kickstart
+render();
+</script>
+</body>
+</html>
